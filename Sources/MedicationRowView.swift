@@ -48,6 +48,7 @@ struct MedicationRowView: View {
             // Scheduled Time (tabular-nums)
             Text(dose.time.formatted)
                 .font(AppleTheme.Typography.time)
+                .fixedLabel()
                 .foregroundStyle(AppleTheme.textSecondary)
 
             // Status / actions
@@ -108,6 +109,7 @@ struct MedicationRowView: View {
                         .font(AppleTheme.Typography.captionMedium)
                         .foregroundStyle(AppleTheme.textSecondary)
                 }
+                .fixedLabel()
                 .padding(.horizontal, 6)
                 .padding(.vertical, 3.5)
 
@@ -139,6 +141,7 @@ struct MedicationRowView: View {
                         .font(AppleTheme.Typography.captionMedium)
                         .foregroundStyle(Color.red.opacity(0.85))
                 }
+                .fixedLabel()
                 .padding(.horizontal, 4)
 
                 Button(action: {
@@ -153,6 +156,7 @@ struct MedicationRowView: View {
                         Text("补服")
                             .font(AppleTheme.Typography.captionMedium)
                     }
+                    .fixedLabel()
                     .padding(.horizontal, 8)
                     .padding(.vertical, 3.5)
                     .background(
@@ -174,6 +178,7 @@ struct MedicationRowView: View {
                 Text("已跳过")
                     .font(AppleTheme.Typography.captionMedium)
                     .foregroundStyle(AppleTheme.textTertiary)
+                    .fixedLabel()
                     .padding(.horizontal, 4)
 
                 Button(action: {
@@ -188,6 +193,7 @@ struct MedicationRowView: View {
                         Text("补服")
                             .font(AppleTheme.Typography.captionMedium)
                     }
+                    .fixedLabel()
                     .padding(.horizontal, 8)
                     .padding(.vertical, 3.5)
                     .background(
@@ -242,6 +248,7 @@ struct MedicationRowView: View {
                         Text("服药")
                             .font(AppleTheme.Typography.captionMedium)
                     }
+                    .fixedLabel()
                     .padding(.horizontal, 8)
                     .padding(.vertical, 3.5)
                     .background(
@@ -267,29 +274,52 @@ struct MedicationRowView: View {
                 .help("标记为已服用")
 
                 // Secondary Action: Skip Button
-                Button(action: {
-                    withAnimation(.spring(response: 0.32, dampingFraction: 0.8)) {
-                        onSkipped()
+                //
+                // Revealed on hover, like the revoke button on a taken dose.
+                // Skipping is the rare action here, and keeping it out of the
+                // resting row leaves the width to the medication name.
+                if isHovered {
+                    Button(action: {
+                        withAnimation(.spring(response: 0.32, dampingFraction: 0.8)) {
+                            onSkipped()
+                        }
+                    }) {
+                        Text("跳过")
+                            .font(AppleTheme.Typography.caption)
+                            .fixedLabel()
+                            .padding(.horizontal, 7)
+                            .padding(.vertical, 3.5)
+                            .background(
+                                Capsule()
+                                    .fill(isHoveredSkip ? Color.primary.opacity(0.08) : Color.primary.opacity(0.04))
+                            )
+                            .foregroundStyle(isHoveredSkip ? AppleTheme.textSecondary : AppleTheme.textTertiary)
                     }
-                }) {
-                    Text("跳过")
-                        .font(AppleTheme.Typography.caption)
-                        .padding(.horizontal, 7)
-                        .padding(.vertical, 3.5)
-                        .background(
-                            Capsule()
-                                .fill(isHoveredSkip ? Color.primary.opacity(0.08) : Color.primary.opacity(0.04))
-                        )
-                        .foregroundStyle(isHoveredSkip ? AppleTheme.textSecondary : AppleTheme.textTertiary)
-                }
-                .buttonStyle(.plain)
-                .onHover { hovering in
-                    withAnimation(.easeInOut(duration: 0.12)) {
-                        isHoveredSkip = hovering
+                    .buttonStyle(.plain)
+                    .onHover { hovering in
+                        withAnimation(.easeInOut(duration: 0.12)) {
+                            isHoveredSkip = hovering
+                        }
                     }
+                    .help("跳过此次")
+                    .transition(.opacity)
                 }
-                .help("跳过此次")
             }
         }
+    }
+}
+
+// MARK: - Layout Helper
+
+private extension View {
+    /// Pins a short, fixed label (an action pill or a status chip) to its ideal
+    /// size, keeping it on one line.
+    ///
+    /// Without this, a row that runs out of width squeezes the label instead of
+    /// the flexible name column: "服药" wraps into two stacked characters and
+    /// the capsule hugging them degenerates into a circle. The name column has
+    /// `.lineLimit(1)` + truncation and is meant to absorb exactly this loss.
+    func fixedLabel() -> some View {
+        lineLimit(1).fixedSize()
     }
 }
