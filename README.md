@@ -2,6 +2,12 @@
 
 一款轻量的 macOS 菜单栏吃药提醒小工具。
 
+<p align="center">
+  <img src="docs/images/preview_today.png" width="320" alt="今日用药日程" />
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <img src="docs/images/preview_add.png" width="320" alt="添加/编辑药物" />
+</p>
+
 ---
 
 ## 功能特性
@@ -22,7 +28,11 @@
 - macOS 14.0 (Sonoma) 或更高版本
 - Swift 5.9+ / Xcode Command Line Tools
 
-### 编译与运行
+### 下载安装
+- **直接下载**：前往 [Releases](https://github.com/hujunalex1/MedReminder/releases) 页面下载最新的 `MedReminder.dmg` 安装包，双击拖拽至 `Applications` 即可使用。
+- **源码编译**：详见下方步骤。
+
+### 源码编译与运行
 
 1. 克隆代码仓库：
    ```bash

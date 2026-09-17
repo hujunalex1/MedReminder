@@ -39,6 +39,7 @@ struct AllMedicationsView: View {
             .padding(.horizontal, 16)
             .padding(.top, 14)
             .padding(.bottom, 10)
+            .background(.ultraThinMaterial)
 
             Rectangle()
                 .fill(AppleTheme.hairline)
@@ -50,7 +51,7 @@ struct AllMedicationsView: View {
                 medList
             }
         }
-        .background(AppleTheme.ground)
+        .background(VisualEffectView(material: .popover, blendingMode: .behindWindow))
     }
 
     // MARK: - List (Unified Panel)

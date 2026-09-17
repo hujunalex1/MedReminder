@@ -1,0 +1,40 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build & Release DMG
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build Application & DMG Package
+        run: |
+          chmod +x build.sh
+          ./build.sh --dmg
+
+      - name: Generate Checksum
+        run: |
+          cd build
+          shasum -a 256 MedReminder.dmg > MedReminder.dmg.sha256
+          cat MedReminder.dmg.sha256
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            build/MedReminder.dmg
+            build/MedReminder.dmg.sha256
+          generate_release_notes: true
+          draft: false
+          prerelease: false

@@ -63,6 +63,7 @@ struct AddMedicationView: View {
             navBar
                 .padding(.horizontal, 16)
                 .padding(.vertical, 10)
+                .background(.ultraThinMaterial)
 
             Rectangle()
                 .fill(AppleTheme.hairline)
@@ -86,7 +87,7 @@ struct AddMedicationView: View {
                 .padding(14)
             }
         }
-        .background(AppleTheme.ground)
+        .background(VisualEffectView(material: .popover, blendingMode: .behindWindow))
     }
 
     // MARK: - Navigation Bar
