@@ -10,6 +10,9 @@ final class MedicationStore {
 
     private var timer: Timer?
 
+    /// Calendar day (start of day) the current schedule was built for.
+    private var lastScheduledDay = Calendar.current.startOfDay(for: Date())
+
     // MARK: - Init
 
     init() {
@@ -18,6 +21,10 @@ final class MedicationStore {
         cleanupOldRecords()
         startPeriodicCheck()
         observeNotificationActions()
+        observeTimeZoneChange()
+        // Rebuild on every launch: reminders must not depend on the app having
+        // been opened on the day they fire.
+        reschedule()
     }
 
     // MARK: - Today helpers
@@ -129,7 +136,29 @@ final class MedicationStore {
     }
 
     private func reschedule() {
+        lastScheduledDay = Calendar.current.startOfDay(for: Date())
         NotificationManager.shared.scheduleNotifications(for: medications)
+    }
+
+    /// Rebuilds the schedule when the calendar day changes, replenishing the
+    /// `.everyOtherDay` rolling window. Sleeping past midnight simply defers
+    /// the timer, which then catches up on wake.
+    private func refreshScheduleIfDayChanged() {
+        let today = Calendar.current.startOfDay(for: Date())
+        guard today != lastScheduledDay else { return }
+        reschedule()
+    }
+
+    /// Re-anchors repeating triggers after a timezone change: the system may
+    /// keep firing them at the absolute time computed when they were scheduled.
+    private func observeTimeZoneChange() {
+        NotificationCenter.default.addObserver(
+            forName: .NSSystemTimeZoneDidChange,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in self?.reschedule() }
+        }
     }
 
     /// Remove records older than 30 days.
@@ -140,11 +169,18 @@ final class MedicationStore {
         if records.count != before { DataStore.saveRecords(records) }
     }
 
-    /// Every 60 s, auto-mark overdue pending doses as missed.
+    /// Every 60 s: auto-mark overdue pending doses as missed and rebuild the
+    /// schedule if the day rolled over.
     private func startPeriodicCheck() {
-        timer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
-            Task { @MainActor in self?.checkMissedDoses() }
+        let timer = Timer(timeInterval: 60, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                self?.checkMissedDoses()
+                self?.refreshScheduleIfDayChanged()
+            }
         }
+        // .common mode: interacting with the menu bar panel must not pause it
+        RunLoop.main.add(timer, forMode: .common)
+        self.timer = timer
     }
 
     private func checkMissedDoses() {

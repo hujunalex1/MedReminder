@@ -52,8 +52,8 @@ enum Frequency: Codable, Hashable {
         }
     }
 
-    func isActiveOn(date: Date) -> Bool {
-        let cal = Calendar.current
+    func isActiveOn(date: Date, calendar: Calendar = .current) -> Bool {
+        let cal = calendar
         switch self {
         case .daily:
             return true
@@ -65,8 +65,7 @@ enum Frequency: Codable, Hashable {
         case .weekdays(let activeDays):
             // Calendar weekday: 1 = Sunday … 7 = Saturday
             let weekday = cal.component(.weekday, from: date)
-            let iso = weekday == 1 ? 7 : weekday - 1  // → 1 = Mon … 7 = Sun
-            return activeDays.contains(iso)
+            return activeDays.contains(DoseSchedule.isoWeekday(fromCalendar: weekday))
         }
     }
 }
