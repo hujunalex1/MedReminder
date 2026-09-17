@@ -47,7 +47,31 @@ enum DataStore {
         guard let data = try? Data(contentsOf: url) else { return nil }
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        return try? decoder.decode(T.self, from: data)
+        do {
+            return try decoder.decode(T.self, from: data)
+        } catch {
+            print("⚠️ 无法解码 \(url.lastPathComponent): \(error)")
+            quarantineUndecodableFile(at: url)
+            return nil
+        }
+    }
+
+    /// Moves a file the app cannot decode out of the way, so the empty list the
+    /// caller falls back to cannot overwrite it on the next save. Returns the
+    /// backup location, or nil when the move failed.
+    @discardableResult
+    static func quarantineUndecodableFile(at url: URL) -> URL? {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyyMMdd-HHmmss"
+        let backup = url.deletingPathExtension()
+            .appendingPathExtension("corrupt-\(formatter.string(from: Date())).json")
+        guard (try? FileManager.default.moveItem(at: url, to: backup)) != nil else {
+            print("⚠️ 备份失败，原文件未移动: \(url.path)")
+            return nil
+        }
+        print("⚠️ 原文件已备份为 \(backup.lastPathComponent)")
+        return backup
     }
 
     private static func save<T: Encodable>(_ value: T, to url: URL) {

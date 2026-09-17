@@ -118,6 +118,7 @@ private struct MedicationManageRow: View {
     let onDelete: () -> Void
 
     @State private var isHovered = false
+    @State private var isConfirmingDelete = false
 
     var body: some View {
         HStack(spacing: 10) {
@@ -131,6 +132,11 @@ private struct MedicationManageRow: View {
                     Text(med.name)
                         .font(AppleTheme.Typography.bodyTitle)
                         .tracking(-0.15)
+                        // One line, truncated, never wrapped: the action pills
+                        // take their width from this column while hovering, and
+                        // a wrapped name would change the row's height mid-hover.
+                        .lineLimit(1)
+                        .truncationMode(.tail)
                         .foregroundStyle(med.isActive ? AppleTheme.textPrimary : AppleTheme.textSecondary)
 
                     Text(med.dosage)
@@ -138,45 +144,100 @@ private struct MedicationManageRow: View {
                         .foregroundStyle(AppleTheme.textSecondary)
                 }
 
-                HStack(spacing: 4) {
-                    Text(med.frequency.displayText)
+                if isConfirmingDelete {
+                    // Kept to ~10 characters: at this width anything longer is
+                    // cut off by the action pills sitting next to it. The full
+                    // consequence lives in the pill's tooltip.
+                    Text("连同打卡记录一并删除")
                         .font(AppleTheme.Typography.caption)
-                        .foregroundStyle(AppleTheme.textSecondary)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                        .foregroundStyle(Color.red.opacity(0.85))
+                } else {
+                    HStack(spacing: 4) {
+                        Text(med.frequency.displayText)
+                            .font(AppleTheme.Typography.caption)
+                            .foregroundStyle(AppleTheme.textSecondary)
 
-                    Text("·")
-                        .font(AppleTheme.Typography.caption)
-                        .foregroundStyle(AppleTheme.textTertiary)
+                        Text("·")
+                            .font(AppleTheme.Typography.caption)
+                            .foregroundStyle(AppleTheme.textTertiary)
 
-                    Text(med.times.map(\.formatted).joined(separator: ", "))
-                        .font(AppleTheme.Typography.counter)
-                        .foregroundStyle(AppleTheme.textTertiary)
+                        Text(med.times.map(\.formatted).joined(separator: ", "))
+                            .font(AppleTheme.Typography.counter)
+                            .foregroundStyle(AppleTheme.textTertiary)
+                    }
                 }
             }
 
             Spacer()
 
-            // Action buttons on hover
-            if isHovered {
+            // Action buttons on hover. While a delete is pending the row asks
+            // inline instead of through a confirmationDialog: dialogs presented
+            // from inside this scrolling panel are unreliable on macOS, and a
+            // blocked confirmation would leave deletion unreachable.
+            if isHovered || isConfirmingDelete {
                 HStack(spacing: 4) {
-                    Button(action: onEdit) {
-                        Image(systemName: "pencil")
-                            .font(AppleTheme.Typography.microMedium)
-                            .frame(width: 22, height: 22)
-                            .background(Circle().fill(Color.primary.opacity(0.05)))
-                            .foregroundStyle(AppleTheme.textSecondary)
-                    }
-                    .buttonStyle(.plain)
-                    .help("编辑")
+                    if isConfirmingDelete {
+                        Button(action: {
+                            withAnimation(.spring(response: 0.32, dampingFraction: 0.8)) {
+                                onDelete()
+                            }
+                        }) {
+                            Text("删除")
+                                .font(AppleTheme.Typography.captionMedium)
+                                .lineLimit(1)
+                                .fixedSize()
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3.5)
+                                .background(Capsule().fill(Color.red.opacity(0.12)))
+                                .overlay(Capsule().strokeBorder(Color.red.opacity(0.32), lineWidth: 0.7))
+                                .foregroundStyle(Color.red.opacity(0.9))
+                        }
+                        .buttonStyle(.plain)
+                        .help("删除该药物，并清除它的全部服药打卡记录（不可恢复）")
 
-                    Button(action: onDelete) {
-                        Image(systemName: "trash")
-                            .font(AppleTheme.Typography.microMedium)
-                            .frame(width: 22, height: 22)
-                            .background(Circle().fill(Color.red.opacity(0.08)))
-                            .foregroundStyle(Color.red.opacity(0.85))
+                        Button(action: {
+                            withAnimation(.easeInOut(duration: 0.12)) {
+                                isConfirmingDelete = false
+                            }
+                        }) {
+                            Text("取消")
+                                .font(AppleTheme.Typography.caption)
+                                .lineLimit(1)
+                                .fixedSize()
+                                .padding(.horizontal, 7)
+                                .padding(.vertical, 3.5)
+                                .background(Capsule().fill(Color.primary.opacity(0.05)))
+                                .foregroundStyle(AppleTheme.textTertiary)
+                        }
+                        .buttonStyle(.plain)
+                        .help("取消删除")
+                    } else {
+                        Button(action: onEdit) {
+                            Image(systemName: "pencil")
+                                .font(AppleTheme.Typography.microMedium)
+                                .frame(width: 22, height: 22)
+                                .background(Circle().fill(Color.primary.opacity(0.05)))
+                                .foregroundStyle(AppleTheme.textSecondary)
+                        }
+                        .buttonStyle(.plain)
+                        .help("编辑")
+
+                        Button(action: {
+                            withAnimation(.easeInOut(duration: 0.12)) {
+                                isConfirmingDelete = true
+                            }
+                        }) {
+                            Image(systemName: "trash")
+                                .font(AppleTheme.Typography.microMedium)
+                                .frame(width: 22, height: 22)
+                                .background(Circle().fill(Color.red.opacity(0.08)))
+                                .foregroundStyle(Color.red.opacity(0.85))
+                        }
+                        .buttonStyle(.plain)
+                        .help("删除")
                     }
-                    .buttonStyle(.plain)
-                    .help("删除")
                 }
                 .transition(.opacity)
             }
@@ -196,13 +257,21 @@ private struct MedicationManageRow: View {
         .onHover { hovering in
             withAnimation(.easeInOut(duration: 0.12)) {
                 isHovered = hovering
+                // Backing out of a pending delete must never need a second
+                // gesture: leaving the row disarms it.
+                if !hovering { isConfirmingDelete = false }
             }
         }
         .contextMenu {
             Button("编辑") { onEdit() }
             Button(med.isActive ? "停用" : "启用") { onToggle() }
             Divider()
-            Button("删除", role: .destructive) { onDelete() }
+            // Deleting is the one irreversible action here: it takes the whole
+            // dose history with it, and the row sits one 4 pt gap away from
+            // "edit". Both entry points therefore arm the inline confirmation.
+            Button("删除", role: .destructive) {
+                withAnimation(.easeInOut(duration: 0.12)) { isConfirmingDelete = true }
+            }
         }
     }
 }
