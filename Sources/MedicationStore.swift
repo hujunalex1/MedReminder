@@ -8,16 +8,32 @@ final class MedicationStore {
     var medications: [Medication] = []
     var records: [DoseRecord] = []
 
+    /// Data files this launch could not read. Non-empty means the lists above
+    /// are empty for a reason the user has to be told about.
+    private(set) var quarantinedFiles: [DataStore.QuarantinedFile] = []
+
     private var timer: Timer?
 
     /// Calendar day (start of day) the current schedule was built for.
     private var lastScheduledDay = Calendar.current.startOfDay(for: Date())
 
+    // MARK: - Data warnings
+
+    /// Hides the warning for this session. It returns on the next launch, since
+    /// the backup is still sitting there and the data is still not loaded.
+    func dismissDataWarning() {
+        quarantinedFiles = []
+    }
+
     // MARK: - Init
 
     init() {
-        medications = DataStore.loadMedications()
-        records     = DataStore.loadRecords()
+        let loadedMedications = DataStore.loadMedications()
+        let loadedRecords     = DataStore.loadRecords()
+        medications    = loadedMedications.items
+        records        = loadedRecords.items
+        quarantinedFiles = [loadedMedications.quarantine, loadedRecords.quarantine]
+            .compactMap { $0 }
         cleanupOldRecords()
         startPeriodicCheck()
         observeNotificationActions()
@@ -181,12 +197,23 @@ final class MedicationStore {
         self.timer = timer
     }
 
+    /// Marks every dose that came due more than an hour ago, and was never acted
+    /// on, as missed.
+    ///
+    /// Scope, deliberately — only the doses the medication already existed for
+    /// (`expectsDose`), and only today. Times that had already passed when the
+    /// medication was added are never recorded as missed: the app did not exist
+    /// for the user then, so there is nothing to have missed. Days when the app
+    /// was not running are not back-filled either — a missed record is a claim
+    /// about what someone did, and inventing one for a stretch the app never
+    /// observed is worse than the gap. The cost is
+    /// adherence view has to say so rather than present it as the whole truth.
     private func checkMissedDoses() {
         let now = Date()
         let cal = Calendar.current
 
         for med in medications where med.isActive && med.frequency.isActiveOn(date: now) {
-            for time in med.times {
+            for time in med.times where med.expectsDose(at: time) {
                 let scheduled = time.dateToday()
                 guard now > scheduled.addingTimeInterval(3600) else { continue }
 

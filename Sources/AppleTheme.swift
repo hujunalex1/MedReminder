@@ -33,6 +33,7 @@ enum AppleTheme {
     static let hairline = Color.primary.opacity(0.075)
     static let blue = Color(red: 0.0, green: 0.443, blue: 0.890) // Apple Blue #0071e3
     static let green = Color(red: 0.20, green: 0.78, blue: 0.35) // Apple Green #34c759
+    static let orange = Color(red: 1.0, green: 0.584, blue: 0.0) // Apple Orange #ff9500
 
     // MARK: - Text Colors
     static let textPrimary = Color(nsColor: .labelColor)

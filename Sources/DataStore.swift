@@ -19,16 +19,28 @@ enum DataStore {
 
     // MARK: - Public API
 
-    static func loadMedications() -> [Medication] {
-        load(from: medicationsURL) ?? []
+    /// A file that could not be decoded and was moved aside. The caller is
+    /// expected to tell the user: silently showing an empty list looks exactly
+    /// like "all my medications are gone".
+    struct QuarantinedFile {
+        let originalName: String
+        let backupURL: URL
+    }
+
+    static func loadMedications() -> (items: [Medication], quarantine: QuarantinedFile?) {
+        var quarantine: QuarantinedFile?
+        let items: [Medication] = load(from: medicationsURL, quarantine: &quarantine) ?? []
+        return (items, quarantine)
     }
 
     static func saveMedications(_ items: [Medication]) {
         save(items, to: medicationsURL)
     }
 
-    static func loadRecords() -> [DoseRecord] {
-        load(from: recordsURL) ?? []
+    static func loadRecords() -> (items: [DoseRecord], quarantine: QuarantinedFile?) {
+        var quarantine: QuarantinedFile?
+        let items: [DoseRecord] = load(from: recordsURL, quarantine: &quarantine) ?? []
+        return (items, quarantine)
     }
 
     static func saveRecords(_ items: [DoseRecord]) {
@@ -43,7 +55,10 @@ enum DataStore {
     /// every existing file fail to decode and `load` then silently returns
     /// nil, showing the user an empty list. New fields must be Optional or
     /// decoded with `decodeIfPresent`.
-    private static func load<T: Decodable>(from url: URL) -> T? {
+    private static func load<T: Decodable>(
+        from url: URL,
+        quarantine: inout QuarantinedFile?
+    ) -> T? {
         guard let data = try? Data(contentsOf: url) else { return nil }
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
@@ -51,7 +66,11 @@ enum DataStore {
             return try decoder.decode(T.self, from: data)
         } catch {
             print("⚠️ 无法解码 \(url.lastPathComponent): \(error)")
-            quarantineUndecodableFile(at: url)
+            if let backup = quarantineUndecodableFile(at: url) {
+                quarantine = QuarantinedFile(
+                    originalName: url.lastPathComponent, backupURL: backup
+                )
+            }
             return nil
         }
     }

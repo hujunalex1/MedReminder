@@ -16,12 +16,15 @@ struct TimeOfDay: Codable, Hashable, Comparable {
         String(format: "%02d:%02d", hour, minute)
     }
 
-    /// Returns a `Date` for this time on today's calendar day.
-    func dateToday() -> Date {
+    /// Returns a `Date` for this time on the calendar day containing `day`.
+    func date(on day: Date) -> Date {
         Calendar.current.date(
-            bySettingHour: hour, minute: minute, second: 0, of: Date()
-        ) ?? Date()
+            bySettingHour: hour, minute: minute, second: 0, of: day
+        ) ?? day
     }
+
+    /// Returns a `Date` for this time on today's calendar day.
+    func dateToday() -> Date { date(on: Date()) }
 
     /// Creates a `TimeOfDay` from an arbitrary `Date`.
     static func fromDate(_ date: Date) -> TimeOfDay {
@@ -102,7 +105,20 @@ struct Medication: Identifiable, Codable, Hashable {
     var frequency: Frequency = .daily
     var notes: String = ""
     var isActive: Bool = true
-    var createdAt = Date()
+    /// When the medication was added. Optional so a file written before the
+    /// field existed still decodes at all: a missing key fails the whole file
+    /// (defaults do not apply when decoding), and `expectsDose` reads nil as
+    /// "has always existed" — never as "created now", which would hide the
+    /// medication's whole schedule until tomorrow.
+    var createdAt: Date? = Date()
+
+    /// Whether a dose at `time` should exist. Times that had already passed
+    /// when the medication was added are not doses: adding a medication at
+    /// 14:00 with an 08:00 time must not list — or record — a missed 08:00
+    /// dose for today. The reminder itself only starts tomorrow anyway.
+    func expectsDose(at time: TimeOfDay, on day: Date = Date()) -> Bool {
+        time.date(on: day) >= (createdAt ?? .distantPast)
+    }
 }
 
 // MARK: - DoseRecord
@@ -130,8 +146,13 @@ struct ScheduledDose: Identifiable {
 
     var displayStatus: DoseStatus {
         if let record { return record.status }
-        // Auto-detect missed: >1 h past scheduled time with no record
-        if Date() > time.dateToday().addingTimeInterval(3600) {
+        // Auto-detect missed: >1 h past scheduled time with no record — but only
+        // for doses the medication was already around for. A time that had
+        // already passed when it was added was never a dose, and labelling it
+        // missed would be inventing a failure; it stays pending (and therefore
+        // actionable) so the dose can still be logged.
+        if medication.expectsDose(at: time),
+           Date() > time.dateToday().addingTimeInterval(3600) {
             return .missed
         }
         return .pending

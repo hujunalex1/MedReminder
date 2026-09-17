@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 /// Main popover view: today's medication schedule following Apple Liquid Glass design language.
 @MainActor
@@ -70,6 +71,12 @@ struct ContentView: View {
                 .padding(.horizontal, 16)
                 .padding(.top, 14)
                 .padding(.bottom, 10)
+
+            if !store.quarantinedFiles.isEmpty {
+                dataWarning
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 10)
+            }
 
             if store.todayProgress.total > 0 {
                 progressBar
@@ -170,6 +177,78 @@ struct ContentView: View {
                 }
             }
         }
+    }
+
+    // MARK: - Data Warning
+
+    /// Shown when a data file could not be read. Without it the app simply looks
+    /// empty — indistinguishable from "all my medications are gone" — while the
+    /// file is in fact still there, renamed and sitting next to the original.
+    ///
+    /// The only thing offered is getting to it in Finder. Restoring is a
+    /// deliberate act (rename it back and relaunch): doing it from here would
+    /// silently overwrite whatever has been written since the file was moved.
+    private var dataWarning: some View {
+        let files = store.quarantinedFiles
+        return VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .top, spacing: 5) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(AppleTheme.Typography.micro)
+
+                Text(files.count == 1
+                     ? "有 1 个数据文件读取失败"
+                     : "有 \(files.count) 个数据文件读取失败")
+                    .font(AppleTheme.Typography.captionMedium)
+
+                Spacer(minLength: 6)
+
+                Button(action: store.dismissDataWarning) {
+                    Image(systemName: "xmark")
+                        .font(AppleTheme.Typography.microMedium)
+                        .frame(width: 16, height: 16)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .help("先隐藏（数据文件仍在原处，下次启动仍会提示）")
+            }
+            .foregroundStyle(AppleTheme.orange)
+
+            HStack(spacing: 8) {
+                Button(action: {
+                    NSWorkspace.shared.activateFileViewerSelecting(files.map(\.backupURL))
+                }) {
+                    Text("在访达中显示")
+                        .font(AppleTheme.Typography.captionMedium)
+                        .lineLimit(1)
+                        .fixedSize()
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3.5)
+                        .background(Capsule().fill(AppleTheme.orange.opacity(0.14)))
+                        .overlay(Capsule().strokeBorder(AppleTheme.orange.opacity(0.3), lineWidth: 0.7))
+                        .foregroundStyle(AppleTheme.orange)
+                }
+                .buttonStyle(.plain)
+                .help(files.map { "\($0.originalName) → \($0.backupURL.path)" }
+                        .joined(separator: "\n"))
+
+                Text(files.map(\.backupURL.lastPathComponent).joined(separator: "、"))
+                    .font(AppleTheme.Typography.micro)
+                    .foregroundStyle(AppleTheme.textTertiary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: AppleTheme.radiusCard, style: .continuous)
+                .fill(AppleTheme.orange.opacity(0.08))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: AppleTheme.radiusCard, style: .continuous)
+                .strokeBorder(AppleTheme.orange.opacity(0.22), lineWidth: 0.7)
+        )
     }
 
     // MARK: - Progress Bar (Apple Meter Spec)
