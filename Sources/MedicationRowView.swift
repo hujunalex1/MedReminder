@@ -1,6 +1,7 @@
 import SwiftUI
 
 /// A clean Apple-grade list row designed to sit inside a unified panel with hairline dividers.
+@MainActor
 struct MedicationRowView: View {
 
     let dose: ScheduledDose

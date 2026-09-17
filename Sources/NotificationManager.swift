@@ -1,11 +1,11 @@
 import Foundation
-import UserNotifications
+@preconcurrency import UserNotifications
 
 /// Manages system notification scheduling, permissions, and action handling.
 ///
 /// Communication with `MedicationStore` is done via Foundation
 /// `NotificationCenter` to avoid cross-actor reference issues.
-final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
+final class NotificationManager: NSObject, @unchecked Sendable, UNUserNotificationCenterDelegate {
 
     static let shared = NotificationManager()
 

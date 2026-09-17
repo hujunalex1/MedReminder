@@ -1,6 +1,7 @@
 import SwiftUI
 
 /// A native, refined form for adding or editing medications adhering to Apple Liquid Glass design language.
+@MainActor
 struct AddMedicationView: View {
 
     @Environment(MedicationStore.self) private var store

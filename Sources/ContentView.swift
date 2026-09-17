@@ -1,6 +1,7 @@
 import SwiftUI
 
 /// Main popover view: today's medication schedule following Apple Liquid Glass design language.
+@MainActor
 struct ContentView: View {
 
     @Environment(MedicationStore.self) private var store

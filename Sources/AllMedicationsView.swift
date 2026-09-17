@@ -1,6 +1,7 @@
 import SwiftUI
 
 /// Lists all medications for management inside a unified Apple-grade panel with hairline dividers.
+@MainActor
 struct AllMedicationsView: View {
 
     @Environment(MedicationStore.self) private var store
@@ -108,6 +109,7 @@ struct AllMedicationsView: View {
 
 // MARK: - Medication Manage Row
 
+@MainActor
 private struct MedicationManageRow: View {
 
     let med: Medication
