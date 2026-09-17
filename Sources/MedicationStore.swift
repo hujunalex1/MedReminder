@@ -153,7 +153,9 @@ final class MedicationStore {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            Task { @MainActor in self?.reschedule() }
+            MainActor.assumeIsolated {
+                self?.reschedule()
+            }
         }
     }
 
@@ -169,7 +171,7 @@ final class MedicationStore {
     /// schedule if the day rolled over.
     private func startPeriodicCheck() {
         let timer = Timer(timeInterval: 60, repeats: true) { [weak self] _ in
-            Task { @MainActor in
+            MainActor.assumeIsolated {
                 self?.checkMissedDoses()
                 self?.refreshScheduleIfDayChanged()
             }
@@ -207,11 +209,11 @@ final class MedicationStore {
             object: nil,
             queue: .main
         ) { [weak self] note in
-            guard let self,
-                  let medId = note.userInfo?["medicationId"] as? UUID,
-                  let time  = note.userInfo?["scheduledTime"] as? Date else { return }
-            Task { @MainActor in
-                self.markDose(medicationId: medId, scheduledTime: time, status: .taken)
+            let medId = note.userInfo?["medicationId"] as? UUID
+            let time  = note.userInfo?["scheduledTime"] as? Date
+            guard let medId, let time else { return }
+            MainActor.assumeIsolated {
+                self?.markDose(medicationId: medId, scheduledTime: time, status: .taken)
             }
         }
     }
