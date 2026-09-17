@@ -48,6 +48,11 @@
    ./build.sh --install
    ```
 
+4. 打包为 macOS 独立的 DMG 安装镜像（用于发布或分发）：
+   ```bash
+   ./build.sh --dmg
+   ```
+
 ---
 
 ## 📂 项目结构
