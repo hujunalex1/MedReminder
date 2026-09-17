@@ -13,7 +13,6 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
 
     // Foundation notification names for inter-component communication
     static let doseTakenNotification  = Notification.Name("MedReminder.doseTaken")
-    static let doseSnoozeNotification = Notification.Name("MedReminder.doseSnooze")
 
     // MARK: - Init
 
@@ -249,37 +248,6 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
             identifier: "snooze-\(UUID().uuidString)", content: mutable, trigger: trigger
         )
         center.add(request)
-    }
-
-    /// Triggers an immediate test notification (after 0.5 seconds) with standard Apple Health formatting.
-    func sendTestNotification() {
-        center.requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
-            guard granted else {
-                print("⚠️ Notification permission not granted: \(String(describing: error))")
-                return
-            }
-            let content = UNMutableNotificationContent()
-            content.title    = "服药提醒"
-            content.subtitle = "阿莫西林胶囊"
-            content.body     = "500mg · 饭后温水送服"
-            content.sound    = .default
-            content.categoryIdentifier = "MED_REMINDER"
-            content.userInfo = [
-                "medicationId": UUID().uuidString,
-                "hour": Calendar.current.component(.hour, from: Date()),
-                "minute": Calendar.current.component(.minute, from: Date())
-            ]
-            self.addAttachment(to: content)
-            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 0.5, repeats: false)
-            let request = UNNotificationRequest(identifier: "test-\(UUID().uuidString)", content: content, trigger: trigger)
-            self.center.add(request) { err in
-                if let err = err {
-                    print("⚠️ Failed to add notification request: \(err)")
-                } else {
-                    print("✅ Test notification request added successfully")
-                }
-            }
-        }
     }
 
     private func addAttachment(to content: UNMutableNotificationContent) {

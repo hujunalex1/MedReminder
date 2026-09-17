@@ -37,6 +37,12 @@ enum DataStore {
 
     // MARK: - Helpers
 
+    /// Decoding note: the synthesized decoder only looks up declared keys, so
+    /// removing a field keeps existing files decodable (unknown keys are
+    /// ignored). The reverse is a trap — adding a non-optional property makes
+    /// every existing file fail to decode and `load` then silently returns
+    /// nil, showing the user an empty list. New fields must be Optional or
+    /// decoded with `decodeIfPresent`.
     private static func load<T: Decodable>(from url: URL) -> T? {
         guard let data = try? Data(contentsOf: url) else { return nil }
         let decoder = JSONDecoder()

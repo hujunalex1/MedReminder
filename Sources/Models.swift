@@ -77,14 +77,6 @@ enum DayPeriod: String, CaseIterable, Comparable {
     case afternoon = "下午"
     case evening = "晚上"
 
-    var sfSymbol: String {
-        switch self {
-        case .morning: return "sun.max.fill"
-        case .afternoon: return "sun.haze.fill"
-        case .evening: return "moon.stars.fill"
-        }
-    }
-
     static func < (lhs: DayPeriod, rhs: DayPeriod) -> Bool {
         let order: [DayPeriod: Int] = [.morning: 0, .afternoon: 1, .evening: 2]
         return (order[lhs] ?? 0) < (order[rhs] ?? 0)
@@ -98,24 +90,6 @@ enum DoseStatus: String, Codable {
     case taken
     case skipped
     case missed
-
-    var sfSymbol: String {
-        switch self {
-        case .pending: return "clock"
-        case .taken:   return "checkmark"
-        case .skipped: return "forward.fill"
-        case .missed:  return "exclamationmark"
-        }
-    }
-
-    var label: String {
-        switch self {
-        case .pending: return "待服用"
-        case .taken:   return "已服用"
-        case .skipped: return "已跳过"
-        case .missed:  return "漏服"
-        }
-    }
 }
 
 // MARK: - Medication
@@ -124,7 +98,6 @@ struct Medication: Identifiable, Codable, Hashable {
     var id = UUID()
     var name: String
     var dosage: String
-    var emoji: String = "💊"
     var times: [TimeOfDay]
     var frequency: Frequency = .daily
     var notes: String = ""
@@ -139,6 +112,8 @@ struct DoseRecord: Identifiable, Codable {
     var medicationId: UUID
     var scheduledTime: Date
     var status: DoseStatus = .pending
+    /// When the user acted on this dose. Recorded for future adherence /
+    /// history features; no UI consumes it yet.
     var actionTime: Date?
 }
 

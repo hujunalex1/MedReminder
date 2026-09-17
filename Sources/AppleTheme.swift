@@ -42,7 +42,6 @@ enum AppleTheme {
     // MARK: - Radius Tiers
     static let radiusPanel: CGFloat = 12
     static let radiusCard: CGFloat = 9
-    static let radiusPill: CGFloat = 999
 
     // MARK: - Typography (Apple HIG Standard Scale)
     enum Typography {

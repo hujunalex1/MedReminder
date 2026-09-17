@@ -19,14 +19,6 @@ enum AppIconImage {
         }
         return NSImage(systemSymbolName: "pill.fill", accessibilityDescription: nil) ?? NSImage()
     }()
-
-    static let empty: NSImage = {
-        if let path = Bundle.main.path(forResource: "empty_icon", ofType: "png"),
-           let img = NSImage(contentsOfFile: path) {
-            return img
-        }
-        return NSImage(systemSymbolName: "pills", accessibilityDescription: nil) ?? NSImage()
-    }()
 }
 
 /// Unified Pill Icon View for medication rows and detail views

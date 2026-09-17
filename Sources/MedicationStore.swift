@@ -67,10 +67,6 @@ final class MedicationStore {
         return (done, all.count)
     }
 
-    var hasUnfinishedDoses: Bool {
-        todayDoses.contains { $0.displayStatus == .pending }
-    }
-
     // MARK: - CRUD
 
     func addMedication(_ med: Medication) {

@@ -12,7 +12,6 @@ struct AddMedicationView: View {
 
     @State private var name = ""
     @State private var dosage = ""
-    @State private var emoji = "💊"
     @State private var times: [Date] = []
     @State private var frequencyType: FrequencyType = .daily
     @State private var selectedWeekdays: Set<Int> = []
@@ -34,7 +33,6 @@ struct AddMedicationView: View {
         if let med = editing {
             _name   = State(initialValue: med.name)
             _dosage = State(initialValue: med.dosage)
-            _emoji  = State(initialValue: med.emoji)
             _notes  = State(initialValue: med.notes)
             _times  = State(initialValue: med.times.map { $0.dateToday() })
             switch med.frequency {
@@ -372,7 +370,6 @@ struct AddMedicationView: View {
         if var med = editing {
             med.name      = name.trimmingCharacters(in: .whitespaces)
             med.dosage    = dosage.trimmingCharacters(in: .whitespaces)
-            med.emoji     = emoji
             med.times     = timesOfDay
             med.frequency = freq
             med.notes     = notes.trimmingCharacters(in: .whitespaces)
@@ -381,7 +378,6 @@ struct AddMedicationView: View {
             let med = Medication(
                 name:      name.trimmingCharacters(in: .whitespaces),
                 dosage:    dosage.trimmingCharacters(in: .whitespaces),
-                emoji:     emoji,
                 times:     timesOfDay,
                 frequency: freq,
                 notes:     notes.trimmingCharacters(in: .whitespaces)
