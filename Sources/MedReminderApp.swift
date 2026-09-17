@@ -1,15 +1,12 @@
 import SwiftUI
 
 @main
+@MainActor
 struct MedReminderApp: App {
 
     @State private var store = MedicationStore()
 
     init() {
-        if CommandLine.arguments.contains("--render-screenshots") {
-            ScreenshotRenderer.renderAll()
-            exit(0)
-        }
         NotificationManager.shared.requestPermission()
     }
 
